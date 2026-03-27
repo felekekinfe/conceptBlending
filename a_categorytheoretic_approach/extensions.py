@@ -1,3 +1,4 @@
+
 import json
 import re
 import ast
@@ -60,6 +61,8 @@ def clean_and_parse_json(text_atom):
 # 3. WRAPPERS: LLM AGENTS
 # =========================================================
 
+
+
 def py_generate_spec(c1_atom, c2_atom):
     """
     Calls GPT to generate Algebraic Specs for two concepts.
@@ -68,24 +71,48 @@ def py_generate_spec(c1_atom, c2_atom):
     # Optional: Run preprocessing context agent first if needed
     start_time = time.time()
     try:
+        generated_context = None
         try:
-           context_preprocessing_agent(metta_parser, c1_atom, c2_atom)
-        except:
-            pass
-        result = prompt_agent(metta_parser, "algspec_builder", c1_atom, c2_atom)
-        
+            generated_context = context_preprocessing_agent(metta_parser, c1_atom, c2_atom)
+           
+            
+        except Exception:
+            generated_context = None
+
+        if generated_context:
+
+            concept1_name=str(c1_atom).split()[0].replace('(', '')
+            concept2_name=str(c2_atom).split()[0].replace('(', '')
+            
+            
+            result = prompt_agent(
+                metta_parser,
+                "algspec_builder",
+                concept1_name,
+                concept1_name,
+                generated_context
+            )
+
+          
+        else:
+            result = prompt_agent(
+                metta_parser,
+                "algspec_builder",
+                c1_atom,
+                c2_atom,
+                generated_context
+
+            )
         # Log Success
         monitor.log_llm_attempt(success=True)
         return result
     except Exception as e:
         monitor.log_llm_attempt(success=False)
         return [ValueAtom(f'(Error "{str(e)}")')]
-    
     finally:
         # Log Latency
         duration = time.time() - start_time
         monitor.log_phase("1_Spec_Generation", duration)
-    # return prompt_agent(metta_parser, "algspec_builder", c1_atom, c2_atom)
 
 def py_generate_gen(spec1_atom, spec2_atom):
     """
@@ -204,3 +231,4 @@ if "extensions_loaded" not in globals():
     @register_atoms
     def register_operation_atoms_wrapper():
         return operation_atoms()
+
